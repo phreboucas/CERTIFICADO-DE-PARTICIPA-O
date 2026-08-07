@@ -6,6 +6,8 @@
 <title>Certificado de Participação — A Inteligência Artificial Aplicada</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --navy:#07214f;
@@ -285,6 +287,7 @@
   }
   .actions .btn-print{ background:var(--orange); color:#fff; }
   .actions .btn-print:hover{ background:var(--orange-d); }
+  .actions .btn-print:disabled{ background:#e7a45f; cursor:wait; }
   .actions .btn-back{ background:#fff; color:var(--navy); border:2px solid #dde1ea; }
   .actions .btn-back:hover{ border-color:var(--navy); }
 
@@ -297,18 +300,22 @@
     .cert-body{ font-size:14.5px; }
   }
 
-  /* the printed / "downloaded" PDF always uses these fixed, desktop-equivalent
-     measurements — in physical mm units — so phone and desktop produce the
-     exact same A4-landscape output regardless of screen size */
+  /* Best-effort fallback for manual browser printing (Ctrl/Cmd+P). The main
+     "Baixar certificado" button below no longer depends on this — it
+     renders the certificate to a real A4-landscape PDF in JavaScript, so
+     phone and desktop always produce an identical single-page file
+     regardless of how each browser's print engine behaves. */
   @media print{
-    html, body{ width:297mm; height:210mm; }
     @page{ size:A4 landscape; margin:0; }
+    html, body{ width:297mm; height:210mm; margin:0; }
     body{ background:#fff; }
     .no-print{ display:none !important; }
     #formPage{ display:none !important; }
     #certPage{
       display:flex !important;
       padding:0 !important;
+      margin:0 !important;
+      gap:0 !important;
       min-height:auto !important;
       width:297mm; height:210mm;
     }
@@ -319,6 +326,7 @@
       max-width:none !important;
       aspect-ratio:auto !important;
       padding:8mm !important;
+      margin:0 !important;
     }
     .cert-inner{ padding:14mm 20mm !important; }
     .cert-title{ font-size:44px !important; }
@@ -384,7 +392,7 @@
     </div>
 
     <div class="actions no-print">
-      <button class="btn-print" onclick="window.print()">Baixar / Imprimir certificado (PDF)</button>
+      <button class="btn-print" id="downloadBtn" onclick="baixarPDF()">Baixar certificado (PDF)</button>
       <button class="btn-back" onclick="voltar()">Gerar outro certificado</button>
     </div>
   </div>
@@ -425,6 +433,46 @@
   document.getElementById('nameInput').addEventListener('keydown', function(e){
     if(e.key === 'Enter'){ gerarCertificado(); }
   });
+
+  // Renders the certificate to a real A4-landscape PDF entirely in the
+  // browser (html2canvas + jsPDF), so phone and desktop always produce the
+  // exact same single-page, correctly-oriented file — this does not depend
+  // on each browser/OS print pipeline, which is what caused the certificate
+  // to come out split across pages / in portrait on some phones.
+  async function baixarPDF(){
+    var btn = document.getElementById('downloadBtn');
+    var original = btn.textContent;
+    var el = document.querySelector('.certificate');
+
+    try{
+      btn.disabled = true;
+      btn.textContent = 'Gerando PDF...';
+
+      var canvas = await html2canvas(el, {
+        scale: Math.min(3, (window.devicePixelRatio || 1) * 2),
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      var imgData = canvas.toDataURL('image/jpeg', 0.95);
+      var jsPDFCtor = window.jspdf.jsPDF;
+      var pdf = new jsPDFCtor({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();
+      var pageH = pdf.internal.pageSize.getHeight();
+      pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
+
+      var name = (document.getElementById('certName').textContent || 'participante').trim();
+      var safeName = name.normalize('NFD').replace(/[̀-ͯ]/g, '')
+                          .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
+      pdf.save('certificado-' + (safeName || 'participante') + '.pdf');
+    }catch(e){
+      console.error('Falha ao gerar PDF, usando impressão do navegador como alternativa:', e);
+      window.print();
+    }finally{
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  }
 </script>
 
 </body>
