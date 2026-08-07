@@ -858,11 +858,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     if(e.key === 'Enter'){ gerarCertificado(); }
   });
 
-  // Renders the certificate to a real A4-landscape PDF entirely in the
-  // browser (html2canvas + jsPDF), so phone and desktop always produce the
-  // exact same single-page, correctly-oriented file — this does not depend
-  // on each browser/OS print pipeline, which is what caused the certificate
-  // to come out split across pages / in portrait on some phones.
+  // Renders the certificate to a real PDF entirely in the browser
+  // (html2canvas + jsPDF), so phone and desktop always produce the exact
+  // same single-page file — this does not depend on each browser/OS print
+  // pipeline, which is what caused the certificate to come out split across
+  // pages / in portrait before.
+  //
+  // The PDF page itself is kept PORTRAIT (A4) with the landscape-shaped
+  // certificate centered on it, like a framed picture. This is intentional:
+  // most participants open the file on a phone, and phone PDF viewers
+  // default to fitting a portrait page to the (portrait) screen width —
+  // showing the whole certificate at once with no zooming/rotating needed.
+  // A true landscape-page PDF looks correct on desktop but forces phones to
+  // zoom in and scroll to see the edges, which is the "cropped" view being
+  // reported.
   async function baixarPDF(){
     var btn = document.getElementById('downloadBtn');
     var original = btn.textContent;
@@ -880,10 +889,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 
       var imgData = canvas.toDataURL('image/jpeg', 0.95);
       var jsPDFCtor = window.jspdf.jsPDF;
-      var pdf = new jsPDFCtor({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      var pageW = pdf.internal.pageSize.getWidth();
-      var pageH = pdf.internal.pageSize.getHeight();
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH, undefined, 'FAST');
+      var pdf = new jsPDFCtor({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var pageW = pdf.internal.pageSize.getWidth();   // 210mm
+      var pageH = pdf.internal.pageSize.getHeight();  // 297mm
+
+      var margin = 12;
+      var imgW = pageW - margin * 2;
+      var imgH = imgW * (canvas.height / canvas.width);
+      if (imgH > pageH - margin * 2){
+        imgH = pageH - margin * 2;
+        imgW = imgH * (canvas.width / canvas.height);
+      }
+      var offsetX = (pageW - imgW) / 2;
+      var offsetY = (pageH - imgH) / 2;
+      pdf.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH, undefined, 'FAST');
 
       var name = (document.getElementById('certName').textContent || 'participante').trim();
       var safeName = name.normalize('NFD').replace(/[̀-ͯ]/g, '')
