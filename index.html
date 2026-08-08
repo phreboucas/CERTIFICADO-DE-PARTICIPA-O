@@ -616,21 +616,18 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     background:var(--navy);
     clip-path:polygon(0 0, 100% 0, 0 100%);
   }
+  /* proportional dot grid (percentages, not fixed px) so it always reads as
+     a tidy little grid instead of one stray dot at small sizes — this
+     replaces an earlier bracket + single-dot combo that could look like a
+     disconnected mark poking out of the corner rather than part of it */
   .corner-orn .dots{
     position:absolute; inset:0;
-    clip-path:polygon(0 0, 62% 0, 0 62%);
-    background-image:radial-gradient(var(--orange) 2.6px, transparent 2.8px);
-    background-size:16px 16px;
-    background-position:11px 11px;
+    clip-path:polygon(0 0, 58% 0, 0 58%);
+    background-image:radial-gradient(circle closest-side, var(--orange) 42%, transparent 44%);
+    background-size:22% 22%;
+    background-position:7% 7%;
   }
-  .corner-orn .bracket{
-    position:absolute;
-    top:20%; left:20%;
-    width:32%; height:32%;
-    border-top:2px solid var(--orange);
-    border-left:2px solid var(--orange);
-    opacity:.9;
-  }
+  .corner-orn .bracket{ display:none; }
   .corner-orn.tl{ top:0; left:0; }
   .corner-orn.tr{ top:0; right:0; transform:scaleX(-1); }
   .corner-orn.bl{ bottom:0; left:0; transform:scaleY(-1); }
