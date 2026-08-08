@@ -908,9 +908,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         useCORS: true,
         backgroundColor: '#ffffff',
         width: pinnedW,
-        height: pinnedH,
-        windowWidth: pinnedW,
-        windowHeight: pinnedH
+        height: pinnedH
+        // NOTE: deliberately NOT passing windowWidth/windowHeight here.
+        // Those control the viewport size html2canvas uses to lay out its
+        // internal clone (they affect vw-based clamp() sizes and the
+        // #certPage flex-centering), not the output canvas size — that's
+        // already controlled by width/height above. An earlier version of
+        // this fix mistakenly set windowWidth/windowHeight to the
+        // certificate's own (tiny) pinned size, which shrank the clone's
+        // layout viewport down to ~350px wide. That made the flex-centered
+        // #certPage recompute its centering against the wrong viewport
+        // width, so the captured certificate ended up shifted left inside
+        // the canvas instead of centered — the PDF then had uneven left/
+        // right margins on the page. Leaving these out lets html2canvas
+        // default to the real window size, matching what's on screen.
       });
 
       var imgData = canvas.toDataURL('image/jpeg', 0.95);
